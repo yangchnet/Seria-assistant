@@ -1,11 +1,12 @@
 from tkinter import *
 from tkinter import ttk
+import tkinter as tk
 import serial
 import serial.tools.list_ports
 import threading
 
 
-class MainWindow():
+class MainWindow(tk.Tk):
     # receiveDisabel = BooleanVar()       # 不可接收
     # on_off = StringVar()  # 按钮字段
     # bottom_msg = StringVar()  # 底部提示字段
@@ -13,12 +14,16 @@ class MainWindow():
     # re_msg = StringVar()  # 串口收到信息字段
 
     def __init__(self):
+        super().__init__()
+        self.bottom_msg = StringVar()
+        self.on_off_msg = StringVar()
         self.receiveDisabel = False  # 设置为可接收
         self.addWidget()
         self.initTool()
-        self.initEvent()
-        self.getParameters()
+        # self.initEvent()
+        # self.getParameters()
         self.setgrid()
+        # self.serial_text.insert(INSERT, 'akgjkag')
 
     def initTool(self):
         self.ser = serial.Serial()
@@ -26,14 +31,16 @@ class MainWindow():
 
     def addWidget(self):
         '''添加各个小部件, 设置其基本属性'''
-        self.root = Tk()
+
+
         # root下的六个部分
-        self.serial_lf = ttk.Labelframe(self.root, text='串口设置', padding='10 10 10 10')  # 串口设置帧
-        self.receive_lf = ttk.Labelframe(self.root, text='接收设置', padding='10 10 10 10')  # 接收设置帧
-        self.send_lf = ttk.Labelframe(self.root, text='发送设置', padding='10 10 10 10')  # 发送设置帧
-        self.on_off_button = ttk.Button(self.root, text='打开串口', command=self.port_open)  # 打开/关闭串口
-        self.msg_lable = ttk.Label(self.root, padding='10 10 10 10')  # 串口信息标签
-        self.serial_text = Text(self.root, wrap='word', width=50, height=15, state='disabled')  # 接收信息窗口
+        self.serial_lf = ttk.Labelframe(self, text='串口设置', padding='10 10 10 10')  # 串口设置帧
+        self.receive_lf = ttk.Labelframe(self, text='接收设置', padding='10 10 10 10')  # 接收设置帧
+        self.send_lf = ttk.Labelframe(self, text='发送设置', padding='10 10 10 10')  # 发送设置帧
+        self.on_off_button = ttk.Button(self, textvariable = self.on_off_msg, command=self.open)  # 打开/关闭串口
+        self.msg_lable = ttk.Label(self, padding='10 10 10 10', textvariable = self.bottom_msg)  # 串口信息标签
+        self.serial_text = Text(self, wrap='word', width=50, height=15, state='normal')  # 接收信息窗口
+        self.on_off_msg.set('open')
 
         # 向self.serial_lf中添加选项
         self.serial_lable = ttk.Label(self.serial_lf, text='串口选择')
@@ -59,7 +66,7 @@ class MainWindow():
         # 向self.receive_lf中添加选项
         self.hex_radio = ttk.Radiobutton(self.receive_lf, text='16进制显示', value='16')
         self.ascii_radio = ttk.Radiobutton(self.receive_lf, text='ascii码显示', value='ascii')
-        self.empty_button = ttk.Button(self.receive_lf, text='清空')
+        self.empty_button = ttk.Button(self.receive_lf, text='清空', command = self.close)
 
         # 向self.self.send_lf中添加选项
         self.send_text = Text(self.send_lf, width=20, height=5)
@@ -70,7 +77,9 @@ class MainWindow():
         return
 
     def initEvent(self):
-        self.on_off_button.bind('<ButtonPress>, <ButtonRelease>', self.port_open)
+        # self.on_off_button.bind('<ButtonPress>, <ButtonRelease>', self.open())
+        self.on_off_button.bind('<Return>', self.open())
+        self.empty_button.bind('<Return>', self.close())
         return
 
     def getParameters(self):
@@ -112,13 +121,14 @@ class MainWindow():
         self.serial_text.grid(row=0, column=2, columnspan=5, rowspan=4, sticky=W, padx='10', pady='20')
         self.serial_text.rowconfigure(0, weight=4)
         self.serial_text.columnconfigure(2, weight=2)
+        # self.serial_text.insert(INSERT, 'jkajglkajgk')
 
         # 二级排布
         self.serial_lable.grid(row=0, column=0, pady=10)
         self.serial_selected.grid(row=0, column=1)
         self.b_lable.grid(row=1, column=0, pady=10)
         self.b_selected.grid(row=1, column=1)
-        self.parity.grid(row=2, column=0, pady=10)
+        self.parity_lable.grid(row=2, column=0, pady=10)
         self.parity.grid(row=2, column=1)
         self.bytesize_lable.grid(row=3, column=0, pady=10)
         self.bytesize.grid(row=3, column=1)
@@ -130,7 +140,6 @@ class MainWindow():
         self.send_text.grid(row=0, column=0, rowspan=2, columnspan=2, padx='10', pady='10')
         self.send_button.grid(row=0, column=2, padx='10', pady='10', rowspan=2)
 
-        self.root.mainloop()
         return
 
     def get_port(self):
@@ -143,44 +152,69 @@ class MainWindow():
                 port_list.append(p[0])
         return port_list
 
-    def port_open(self):
-        if self.ser.is_open:
-            '''如果串口是打开的，那么设置receiveDisable不可用，关闭串口，并使下拉框可用'''
-            self.receiveDisabel = True
-            self.ser.close()
-            self.on_off_button.setvar("打开串口")
-            self.serial_selected.state('readonly')
-            self.stop_selected.state('readonly')
-            self.b_selected.state('readonly')
-            self.bytesize.state('readonly')
-            self.parity.state('readonly')
-            self.msg_lable.setvar("串口已关闭")
-        else:
-            '''串口是关闭的，设置receiveDisable可用，打开串口，使下拉框不可用'''
-            self.receiveDisabel = False
-            self.ser.port = self.serial_selected.get()
-            self.ser.baudrate = self.b_selected.get()
-            self.ser.stopbits = int(self.stop_selected.get())
-            self.ser.parity = self.parity.get()
-            self.ser.bytesize = int(self.bytesize.get())
-            self.ser.open()
-            self.msg_lable.setvar("串口已打开")
-            receiveProcess = threading.Thread(target=self.receiveData())
-            receiveProcess.setDaemon(True)
-            receiveProcess.start()
 
-    def receiveData(self):
+
+    def open(self):
+        if not hasattr(self, 'worker'):
+            self.setup_worker()
+        self.on_off_button.setvar('close')
+        self.bottom_msg.set('port is open')
+        # self.serial_selected.state('readonly')
+        # self.stop_selected.state('readonly')
+        # self.b_selected.state('readonly')
+        # self.bytesize.state('readonly')
+        # self.parity.state('readonly')
         self.receiveDisabel = False
-        while (not self.receiveDisabel):
-            b = self.ser.read()
-            if b != None:
-                byte = byte + str(b.hex())
-                self.serial_text.insert(INSERT, byte)
+        self.worker.start()
+
+    def close(self):
+        self.bottom_msg.set('the port is close')
+        # self.serial_selected.state('normal')
+        # self.stop_selected.state('normal')
+        # self.b_selected.state('normal')
+        # self.bytesize.state('normal')
+        # self.parity.state('normal')
+        del self.worker
+        self.on_off_button.setvar('open')
 
 
-def main():
-    app = MainWindow()
 
+
+    def setup_worker(self):
+        self.ser.port = self.serial_selected.get()
+        self.ser.baudrate = self.b_selected.get()
+        self.ser.stopbits = int(self.stop_selected.get())
+        self.ser.parity = self.parity.get()
+        self.ser.bytesize = int(self.bytesize.get())
+        worker = ReceiveWorker(self)
+        self.worker = worker
+
+    def update_serial_text(self, information):
+        return self.serial_text.insert(INSERT, information)
+
+
+class ReceiveWorker(threading.Thread):
+    def __init__(self, master):
+        super().__init__()
+        self.ser = master.ser
+        self.master = master
+
+        self.receiveDisable = False
+        self.force_quit = False
+
+    def run(self):
+        while True:
+            if not self.receiveDisable:
+                if not self.ser.is_open:
+                    self.ser.open()
+                b = self.ser.read()
+                print(b.hex())
+                self.master.update_serial_text(b.hex())
+            elif self.force_quit:
+                del self.master.worker
+                return
+        return
 
 if __name__ == '__main__':
-    main()
+    win = MainWindow()
+    win.mainloop()
