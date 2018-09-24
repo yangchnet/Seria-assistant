@@ -1,2 +1,4 @@
-import Tk
-from
+from tkinter import *
+from tkinter import ttk
+import serial
+
