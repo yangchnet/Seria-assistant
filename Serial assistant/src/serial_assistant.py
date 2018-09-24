@@ -6,12 +6,12 @@ root = Tk()  # root帧
 
 on_flag = BooleanVar()
 on_off = StringVar()
-serial_msg = StringVar()
+bottom_msg = StringVar()
 portname_list = StringVar()
 receive_msg = StringVar()
 ser = serial.Serial()
 
-serial_msg.set('jaklgjklajgklaj')
+bottom_msg.set('jaklgjklajgklaj')
 
 
 # 定义函数
@@ -52,7 +52,7 @@ def stopbyte_selected(*args):
 def port_open(*args):
     if on_off.get() == '打开串口':
         on_off.set('关闭串口')
-        serial_msg.set('串口打开')
+        bottom_msg.set('串口打开')
         on_flag.set(1)
         ser.open()
         while on_flag.get() != 0:
@@ -61,7 +61,7 @@ def port_open(*args):
         return 0
     elif on_off.get() == '关闭串口':
         ser.close()
-        serial_msg.set('串口关闭')
+        bottom_msg.set('串口关闭')
         on_off.set('打开串口')
         return 0
 
@@ -71,7 +71,7 @@ serial_lf = ttk.Labelframe(root, text='串口设置', padding='10 10 10 10')  # 
 receive_lf = ttk.Labelframe(root, text='接收设置', padding='10 10 10 10')  # 接收设置帧
 send_lf = ttk.Labelframe(root, text='发送设置', padding='10 10 10 10')  # 发送设置帧
 on_off_button = ttk.Button(root, textvariable=on_off, command=port_open)  # 打开/关闭串口
-msg_lable = ttk.Label(root, textvariable=serial_msg, padding='10 10 10 10')  # 串口信息标签
+msg_lable = ttk.Label(root, textvariable=bottom_msg, padding='10 10 10 10')  # 串口信息标签
 serial_text = Text(root, wrap='word', width=50, height=15, state='disabled')  # 接收信息窗口
 
 # 向serial_lf中添加选项
