@@ -32,13 +32,12 @@ class MainWindow(tk.Tk):
     def addWidget(self):
         '''添加各个小部件, 设置其基本属性'''
 
-
         # root下的六个部分
         self.serial_lf = ttk.Labelframe(self, text='串口设置', padding='10 10 10 10')  # 串口设置帧
         self.receive_lf = ttk.Labelframe(self, text='接收设置', padding='10 10 10 10')  # 接收设置帧
         self.send_lf = ttk.Labelframe(self, text='发送设置', padding='10 10 10 10')  # 发送设置帧
-        self.on_off_button = ttk.Button(self, textvariable = self.on_off_msg, command=self.open)  # 打开/关闭串口
-        self.msg_lable = ttk.Label(self, padding='10 10 10 10', textvariable = self.bottom_msg)  # 串口信息标签
+        self.on_off_button = ttk.Button(self, textvariable=self.on_off_msg, command=self.open_close)  # 打开/关闭串口
+        self.msg_lable = ttk.Label(self, padding='10 10 10 10', textvariable=self.bottom_msg)  # 串口信息标签
         self.serial_text = Text(self, wrap='word', width=50, height=15, state='normal')  # 接收信息窗口
         self.on_off_msg.set('open')
 
@@ -66,7 +65,7 @@ class MainWindow(tk.Tk):
         # 向self.receive_lf中添加选项
         self.hex_radio = ttk.Radiobutton(self.receive_lf, text='16进制显示', value='16')
         self.ascii_radio = ttk.Radiobutton(self.receive_lf, text='ascii码显示', value='ascii')
-        self.empty_button = ttk.Button(self.receive_lf, text='清空', command = self.close)
+        self.empty_button = ttk.Button(self.receive_lf, text='清空', command=self.close)
 
         # 向self.self.send_lf中添加选项
         self.send_text = Text(self.send_lf, width=20, height=5)
@@ -152,33 +151,35 @@ class MainWindow(tk.Tk):
                 port_list.append(p[0])
         return port_list
 
-
-
     def open(self):
         if not hasattr(self, 'worker'):
             self.setup_worker()
-        self.on_off_button.setvar('close')
+        self.on_off_msg.set('close')
         self.bottom_msg.set('port is open')
-        # self.serial_selected.state('readonly')
-        # self.stop_selected.state('readonly')
-        # self.b_selected.state('readonly')
-        # self.bytesize.state('readonly')
-        # self.parity.state('readonly')
         self.receiveDisabel = False
         self.worker.start()
 
     def close(self):
         self.bottom_msg.set('the port is close')
-        # self.serial_selected.state('normal')
-        # self.stop_selected.state('normal')
-        # self.b_selected.state('normal')
-        # self.bytesize.state('normal')
-        # self.parity.state('normal')
         del self.worker
         self.on_off_button.setvar('open')
 
-
-
+    def open_close(self):
+        if not self.receiveDisabel:
+            if not hasattr(self, 'worker'):
+                self.setup_worker()
+            self.on_off_msg.set('close')
+            self.bottom_msg.set('port is open')
+            self.worker.start()
+            self.worker.receiveDisabel = True
+            self.receiveDisabel = True
+        elif self.receiveDisabel:
+            self.bottom_msg.set('the port is close')
+            self.worker.force_quit = True
+            self.worker.receiveDisable = True
+            del self.worker
+            self.receiveDisabel = False
+            self.on_off_msg.set('open')
 
     def setup_worker(self):
         self.ser.port = self.serial_selected.get()
@@ -214,6 +215,7 @@ class ReceiveWorker(threading.Thread):
                 del self.master.worker
                 return
         return
+
 
 if __name__ == '__main__':
     win = MainWindow()
