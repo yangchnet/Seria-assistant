@@ -4,26 +4,21 @@ import tkinter as tk
 import serial
 import serial.tools.list_ports
 import threading
+import binascii
 
 
 class MainWindow(tk.Tk):
-    # receiveDisabel = BooleanVar()       # 不可接收
-    # on_off = StringVar()  # 按钮字段
-    # bottom_msg = StringVar()  # 底部提示字段
-    # port_list = StringVar()  # 串口列表
-    # re_msg = StringVar()  # 串口收到信息字段
 
     def __init__(self):
         super().__init__()
         self.bottom_msg = StringVar()
         self.on_off_msg = StringVar()
+        self.coding_style = StringVar()
+        self.coding = ''
         self.receiveDisabel = False  # 设置为可接收
         self.addWidget()
         self.initTool()
-        # self.initEvent()
-        # self.getParameters()
         self.setgrid()
-        # self.serial_text.insert(INSERT, 'akgjkag')
 
     def initTool(self):
         self.ser = serial.Serial()
@@ -39,6 +34,8 @@ class MainWindow(tk.Tk):
         self.on_off_button = ttk.Button(self, textvariable=self.on_off_msg, command=self.open_close)  # 打开/关闭串口
         self.msg_lable = ttk.Label(self, padding='10 10 10 10', textvariable=self.bottom_msg)  # 串口信息标签
         self.serial_text = Text(self, wrap='word', width=50, height=15, state='normal')  # 接收信息窗口
+        self.scroll = ttk.Scrollbar(self,orient=VERTICAL, command=self.serial_text.yview)
+        self.serial_text.configure(yscrollcommand=self.scroll.set)
         self.on_off_msg.set('open')
 
         # 向self.serial_lf中添加选项
@@ -47,7 +44,8 @@ class MainWindow(tk.Tk):
         self.serial_selected.set(self.get_port()[0])
 
         self.b_lable = ttk.Label(self.serial_lf, text='波特率')
-        self.b_selected = ttk.Combobox(self.serial_lf, values=('9600', '14400', '19200', '28800'), state='readonly')
+        self.b_selected = ttk.Combobox(self.serial_lf, values=('9600', '14400', '19200', '28800', '115200'),
+                                       state='readonly')
         self.b_selected.set('19200')
 
         self.parity_lable = ttk.Label(self.serial_lf, text='校验位')
@@ -63,9 +61,10 @@ class MainWindow(tk.Tk):
         self.stop_selected.set("1")
 
         # 向self.receive_lf中添加选项
-        self.hex_radio = ttk.Radiobutton(self.receive_lf, text='16进制显示', value='16')
-        self.ascii_radio = ttk.Radiobutton(self.receive_lf, text='ascii码显示', value='ascii')
-        self.empty_button = ttk.Button(self.receive_lf, text='清空', command=self.close)
+        self.hex_radio = ttk.Radiobutton(self.receive_lf, text='16进制显示', variable=self.coding_style, value='16')
+        self.ascii_radio = ttk.Radiobutton(self.receive_lf, text='ascii码显示', variable=self.coding_style, value='ascii')
+        self.empty_button = ttk.Button(self.receive_lf, text='清空', command=self.empty)
+        self.coding_style.set('16')
 
         # 向self.self.send_lf中添加选项
         self.send_text = Text(self.send_lf, width=20, height=5)
@@ -73,15 +72,6 @@ class MainWindow(tk.Tk):
         self.send_text.columnconfigure(0, weight=1)
         self.send_button = ttk.Button(self.send_lf, text='发送')
 
-        return
-
-    def initEvent(self):
-        # self.on_off_button.bind('<ButtonPress>, <ButtonRelease>', self.open())
-        self.on_off_button.bind('<Return>', self.open())
-        self.empty_button.bind('<Return>', self.close())
-        return
-
-    def getParameters(self):
         return
 
     def setgrid(self):
@@ -95,6 +85,7 @@ class MainWindow(tk.Tk):
         self.serial_lf.columnconfigure(2, weight=5)
         self.serial_lf.columnconfigure(3, weight=5)
         self.serial_lf.columnconfigure(4, weight=5)
+
 
         # 接收设置帧
         self.receive_lf.grid(row=5, column=0, rowspan=2, columnspan=2, sticky=(N, E, W, S), padx=10, pady=10)
@@ -120,7 +111,10 @@ class MainWindow(tk.Tk):
         self.serial_text.grid(row=0, column=2, columnspan=5, rowspan=4, sticky=W, padx='10', pady='20')
         self.serial_text.rowconfigure(0, weight=4)
         self.serial_text.columnconfigure(2, weight=2)
-        # self.serial_text.insert(INSERT, 'jkajglkajgk')
+
+        self.scroll.grid(row = 1, column = 6, rowspan = 4,columnspan = 1, sticky = (N, W))
+        self.scroll.rowconfigure(0, weight =4)
+        self.scroll.columnconfigure(6, weight = 1)
 
         # 二级排布
         self.serial_lable.grid(row=0, column=0, pady=10)
@@ -141,6 +135,10 @@ class MainWindow(tk.Tk):
 
         return
 
+    def empty(self):
+        print('empty')
+        return self.serial_text.delete(0.0, END)
+
     def get_port(self):
         port = list(serial.tools.list_ports.comports())
         if len(port) <= 0:
@@ -151,18 +149,19 @@ class MainWindow(tk.Tk):
                 port_list.append(p[0])
         return port_list
 
-    def open(self):
-        if not hasattr(self, 'worker'):
-            self.setup_worker()
-        self.on_off_msg.set('close')
-        self.bottom_msg.set('port is open')
-        self.receiveDisabel = False
-        self.worker.start()
+    def widget_disable(self):
+        self.serial_selected['state'] = 'disabled'
+        self.parity['state'] = 'disabled'
+        self.bytesize['state'] = 'disabled'
+        self.stop_selected['state'] = 'disabled'
+        self.b_selected['state'] = 'disabled'
 
-    def close(self):
-        self.bottom_msg.set('the port is close')
-        del self.worker
-        self.on_off_button.setvar('open')
+    def widget_able(self):
+        self.serial_selected['state'] = 'normal'
+        self.parity['state'] = 'normal'
+        self.bytesize['state'] = 'normal'
+        self.stop_selected['state'] = 'normal'
+        self.b_selected['state'] = 'normal'
 
     def open_close(self):
         if not self.receiveDisabel:
@@ -178,6 +177,7 @@ class MainWindow(tk.Tk):
             self.worker.force_quit = True
             self.worker.receiveDisable = True
             del self.worker
+            self.widget_able()
             self.receiveDisabel = False
             self.on_off_msg.set('open')
 
@@ -187,6 +187,7 @@ class MainWindow(tk.Tk):
         self.ser.stopbits = int(self.stop_selected.get())
         self.ser.parity = self.parity.get()
         self.ser.bytesize = int(self.bytesize.get())
+        self.coding = self.coding_style.get()
         worker = ReceiveWorker(self)
         self.worker = worker
 
@@ -208,13 +209,19 @@ class ReceiveWorker(threading.Thread):
             if not self.receiveDisable:
                 if not self.ser.is_open:
                     self.ser.open()
-                b = self.ser.read()
-                print(b.hex())
-                self.master.update_serial_text(b.hex())
+                    self.master.widget_disable()
+                if self.master.coding == '16':
+                    b = self.ser.read()
+                    print(b)
+                    self.master.update_serial_text(b.hex())
+                elif self.master.coding == 'ascii':
+                    b = self.ser.read()
+                    b = binascii.a2b_hex(b.hex())
+                    self.master.update_serial_text(b)
             elif self.force_quit:
+                # self.master.widget_able()
                 del self.master.worker
                 return
-        return
 
 
 if __name__ == '__main__':
