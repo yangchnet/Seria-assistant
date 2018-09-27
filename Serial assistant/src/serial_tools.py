@@ -34,7 +34,7 @@ class MainWindow(tk.Tk):
         self.on_off_button = ttk.Button(self, textvariable=self.on_off_msg, command=self.open_close)  # 打开/关闭串口
         self.msg_lable = ttk.Label(self, padding='10 10 10 10', textvariable=self.bottom_msg)  # 串口信息标签
         self.serial_text = Text(self, wrap='word', width=50, height=15, state='normal')  # 接收信息窗口
-        self.scroll = ttk.Scrollbar(self,orient=VERTICAL, command=self.serial_text.yview)
+        self.scroll = Scrollbar(self, orient=VERTICAL, command=self.serial_text.yview)
         self.serial_text.configure(yscrollcommand=self.scroll.set)
         self.on_off_msg.set('open')
 
@@ -86,7 +86,6 @@ class MainWindow(tk.Tk):
         self.serial_lf.columnconfigure(3, weight=5)
         self.serial_lf.columnconfigure(4, weight=5)
 
-
         # 接收设置帧
         self.receive_lf.grid(row=5, column=0, rowspan=2, columnspan=2, sticky=(N, E, W, S), padx=10, pady=10)
         self.receive_lf.rowconfigure(5, weight=2)
@@ -108,13 +107,14 @@ class MainWindow(tk.Tk):
         self.msg_lable.rowconfigure(7, weight=3)
 
         # 接收信息窗口
-        self.serial_text.grid(row=0, column=2, columnspan=5, rowspan=4, sticky=W, padx='10', pady='20')
+        self.serial_text.grid(row=0, column=2, columnspan=5, rowspan=4, sticky=(W, E), padx='10', pady='20')
         self.serial_text.rowconfigure(0, weight=4)
         self.serial_text.columnconfigure(2, weight=2)
 
-        self.scroll.grid(row = 1, column = 6, rowspan = 4,columnspan = 1, sticky = (N, W))
-        self.scroll.rowconfigure(0, weight =4)
-        self.scroll.columnconfigure(6, weight = 1)
+        self.scroll.grid(row=0, column=6, rowspan=4, columnspan=1, sticky=(N, S),pady = 20)
+        self.scroll.rowconfigure(0, weight=4)
+        self.scroll.columnconfigure(6, weight=1)
+
 
         # 二级排布
         self.serial_lable.grid(row=0, column=0, pady=10)
