@@ -5,6 +5,28 @@ import serial
 import serial.tools.list_ports
 import threading
 import binascii
+from socket import *
+import time
+
+def send(send_str):
+    HOST = '183.230.40.34'
+    PORT = 80
+    BUFSIZ = 1024
+    ADDR = (HOST, PORT)
+
+    tcpClisock = socket(AF_INET, SOCK_STREAM)
+    tcpClisock.connect(ADDR)
+    data = '''
+    POST /devices/525711692/datapoints?type=3 HTTP/1.1 
+    api-key:OhZNJp=6grNUNUF=ND18Z7hfe8k= 
+    Host:api.heclouds.com 
+    Content-Length:59
+
+    {"datastreams":[{"id":"temp","datapoints":[{"value":50}]}]}'''
+
+    tcpClisock.send(send_str)
+    print('send')
+    tcpClisock.close()
 
 
 class MainWindow(tk.Tk):
@@ -205,14 +227,32 @@ class ReceiveWorker(threading.Thread):
         self.force_quit = False
 
     def run(self):
+        send_str = ''  # 要发送的字符
+        count = 0  # 字符长度计数
         while True:
             if not self.receiveDisable:
                 if not self.ser.is_open:
-                    self.ser.open()
+                    self.ser.open()  # 打开串口
                     self.master.widget_disable()
                 if self.master.coding == '16':
                     b = self.ser.read()
-                    print(b)
+                    b = binascii.a2b_hex(b.hex())
+                    if bytes.decode(b) == 'P':  # 监测到P开头
+                        a = bytes.decode(binascii.a2b_hex(self.ser.read().hex()))
+                        if a == 'O':
+                            send_str = ''
+                            count = 0
+                            send_str += 'PO'
+                            continue
+                        send_str += bytes.decode(b)
+                        send_str += a
+                        continue
+                    send_str += bytes.decode(b)
+                    count += 1
+                    if count == 191:
+                        send(bytes(send_str, encoding="utf8"))
+                        print(send_str)
+                    print(bytes.decode(b), end='')
                     self.master.update_serial_text(b.hex())
                 elif self.master.coding == 'ascii':
                     b = self.ser.read()
